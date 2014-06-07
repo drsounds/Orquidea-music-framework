@@ -1,0 +1,376 @@
+<!--
+The MIT License (MIT)
+
+Copyright (c) 2014 Alexander Forselius
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-->
+		<style scoped>
+
+			ac-song {
+				font-size: 11px;
+				font-family: 'Tahoma';
+				background-color: rgba(0, 0, 0, .025);
+				width: 100%;
+				min-height: 11px;
+				display: block;
+				user-select: none;
+				-webkit-user-select: none;
+				-webkit-user-drag: none;
+				user-drag: none;
+			}
+			ac-song:nth-child(2n) {
+				background-color: rgbs(0, 0, 0, .015);
+			}
+			table > tr > td {
+
+				border-bottom: 1px solid rgba(0, 0, 0, .5);
+			}
+			ac-song:unresolved {
+				content: 'Loading track';
+			}
+			
+			.ac-song-play {
+				background-color: rgba(0, 0, 0, 0.75);
+				color: rgba(233, 255, 233, 0.75);
+			}
+			.ac-song-play a {
+				color: white;
+			}
+			.ac-error {
+				background-color: rgba(255, 244, 244, 0.1);
+				content: 'Error';
+			}
+			.ac-song-selected {
+				background-color: #aacc88;
+				color: white;
+			}
+			.ac-song-selected a {
+				color: white;
+			}
+		</style>
+		<template id="acsong">
+			<table width="100%">
+				<tr>
+			
+					<td><a id="trackno"></a></td>
+					<td><a id="title"></a></td>
+					<td><a id="artist"></a></td>
+					<td><a id="album"></a></td>
+				</tr>
+			</table>
+		</template>
+		<script>
+
+			var ACUri = function (uri) {
+				this.uri = uri;
+				uri = uri.replace(/:\/\//g, ':').replace(/::/g, ':').replace(/\//g, ':');
+				this.segments = uri.split(':')
+				for (var i = 1; i < this.segments.length; i+= 2) {
+					this[this.segments[i]] = decodeURI(this.segments[i + 1]);
+				}
+				console.log(this);
+			}
+			
+			var Resolver = function (uri, node) {
+				this.uri = uri;
+				this.timer = null;
+				this.duration = 3;
+				this.position = 0;
+				this.node = node;
+				
+			}
+			Resolver.prototype = {
+				
+				
+				stop: function () {
+					
+
+				},
+				play: function () {
+				},
+				/**
+				 * Loads metadata for a song
+				 **/
+				load: function (cb) {
+				},
+
+				/***
+				 * Used by the generic resolver to ask if this resolver can resolve a source
+				 **/
+				lookup: function (query, callback) {
+				}
+			};
+
+			/**
+			 * checks if the resolver matches the uri
+			 **/
+			Resolver.matchesUri = function (uri) {
+				return false;
+			};
+
+			var MockResolver = function (uri, node) {
+				this.uri = uri;
+				this.timer = null;
+				this.duration = 3;
+				this.position = 0;
+				this.node = node;
+				
+			}
+			MockResolver.prototype = new Resolver();
+			MockResolver.prototype = {
+				
+				
+				stop: function () {
+					clearInterval(this.timer);
+					this.timer = null;
+
+				},
+				play: function () {
+					var self = this;
+					self.position = 0;
+					this.timer = setInterval(function () {
+						self.position += 1;
+						if (self.position >= self.duration) {
+							
+							self.stop();	
+							console.log("A");
+							var stopEvent = new CustomEvent('trackended', {
+								'track': this
+							});
+							console.log(stopEvent);
+							window.dispatchEvent(stopEvent);
+						}
+						console.log(self.position);
+					}, 1000);
+				},
+				/**
+				 * Loads metadata for a song
+				 **/
+				load: function (cb) {
+					console.log("Loading");
+					setTimeout(function () {
+						cb({
+							'title': 'test',
+							'artist': {
+								'uri': 'test',
+								'name': 'Testartist'
+							}
+						});
+					}, 1000);
+				},
+
+				
+			};
+			 /*** Used by the generic resolver to ask if this resolver can resolve a source
+			 **/
+			MockResolver.lookup = function (query, callback) {
+					callback(this, [query]);
+			};
+			MockResolver.matchesUri = function (uri) {
+				return new RegExp(/^resolver\:/).test(uri);
+			};
+
+			/**
+			 * Generic resolver
+			 **/
+			var GenericResolver = function (uri) {
+				this.uri = uri;
+				this.query = new ACUri(uri);
+			
+			}
+			GenericResolver.prototype = new Resolver();
+			GenericResolver.prototype = {
+				
+				
+				stop: function () {
+					var self = this;
+					self.player.stop();
+				},
+				play: function () {
+					var self = this;
+					self.player.play();
+				},
+				/**
+				 * Loads metadata for a song
+				 **/
+				load: function (cb) {
+					var self_resolver = this;
+					console.log("A");
+					// Iterate through all available resolvers and 
+					for (var i = 0; i < window.musicResolvers.length; i++) {
+						var resolver = window.musicResolvers[i];
+						console.log(resolver.lookup);
+						if ('lookup' in resolver)
+						resolver.lookup(this.params, function (resolver, tracks) {
+							if (tracks && tracks.length > 0) {
+								console.log(arguments);
+								console.log(resolver);
+								self_resolver.player = new resolver(self_resolver.uri);
+								console.log(self_resolver.player.load);
+								self_resolver.player.load(cb);
+							}
+
+						});
+					}
+				}
+			};
+			/**
+			 * checks if the resolver matches the uri
+			 **/
+			GenericResolver.matchesUri = function (uri) {
+				console.log("uri", new RegExp(/^music\:/g).test(uri));
+				return new RegExp(/^music\:/g).test(uri);
+			};
+
+			
+
+
+
+			//GenericResolver.prototype = new Resolver();
+
+
+			/**
+			 * Resolvers for song playback
+			 **/
+			window.musicResolvers = [Resolver, GenericResolver, MockResolver];
+
+			window.addEventListener('trackended', function (e) {
+				window.playIndex += 1;
+				console.log("play index", window.playIndex);
+				window.currentSong.classList.remove('ac-song-play');
+				var songs = document.querySelectorAll('ac-song');
+				console.log(playIndex, songs.length);
+				if (window.playIndex < songs.length) {
+					var song = songs[window.playIndex];
+					console.log("Next song", song);
+					console.log(song.getAttribute('uri'));
+					console.log("Start playing song");
+					console.log(song.player);
+					song.play();
+				}
+			}, false);
+
+			document.addEventListener('mousedown', function (event) {
+				var songs = document.body.querySelectorAll('ac-song');
+				console.log(songs);
+				for (var i = 0; i < songs.length; i++) {
+					var song = songs[i];
+
+					var bounds = song.getBoundingClientRect();
+					console.log(bounds);
+					if (!(event.pageX >= bounds.left && event.pageX <= bounds.left + bounds.width && event.pageY >= bounds.top && event.pageY <= bounds.top + bounds.height)) {
+
+					song.classList.remove('ac-song-selected');
+					}
+				
+				}
+			})
+			var song = Object.create(HTMLElement.prototype);
+			song.setUri = function (uri) {
+				console.log(arguments);
+
+				// Set the music resolver based on the uri
+
+				// Query for a matching resolver
+				
+				for (var i = 0; i < window.musicResolvers.length; i++) {
+					if (window.musicResolvers[i].matchesUri(uri)) {
+						this.resolver = window.musicResolvers[i];
+					}
+
+				}
+				if (!this.resolver) {
+					this.innerHTML = 'Error';
+					this.classList.add('ac-error');
+					return;
+				}
+				this.player = new this.resolver(uri);
+				console.log(this.player);
+				var self = this;
+				this.player.load(function (song) {
+					console.log(arguments);
+					self._root.querySelector('#title').innerHTML = song.title;
+					self._root.querySelector('#artist').innerHTML = song.artist.name;
+					self._root.querySelector('#artist').href = song.artist.uri;
+				});
+			
+			}
+			song.attributeChangedCallback = function (attr, val) {
+				if (attr == 'uri') {
+					this.setUri(val);
+				}
+			};
+			song.createdCallback = function () {
+				var t = document.querySelector('link[href$="song.html"]').import.querySelector('template');	
+			
+				var acsong = t.content.cloneNode(true);
+				
+				this._root = this.createShadowRoot();
+				
+				this._root.appendChild(acsong);
+				this.setUri(this.getAttribute('uri'));
+
+				var self = this;
+				this.addEventListener('mousedown', function (e) {
+					var songs = document.body.querySelectorAll('ac-song');
+					console.log(songs);
+					for (var i = 0; i < songs.length; i++) {
+						var song = songs[i];
+						song.classList.remove('ac-song-selected');
+					
+					}
+						
+					self.classList.add('ac-song-selected');
+
+				});
+
+				this.addEventListener('dblclick', function (event) {
+					if (window.currentSong != null)
+					window.currentSong.stop(); // Stop current song
+					self.play();
+				});
+			};
+			song.stop = function () {
+				this.classList.remove('ac-song-play');
+				this.player.stop();
+			}
+			song.play = function () {
+				var songs = document.body.querySelectorAll('ac-song');
+				console.log(songs);
+				if (window.currentSong)
+				window.currentSong.player.stop();
+				this.classList.add('ac-song-play')
+				for (var i = 0; i < songs.length; i++) {
+					var song = songs[i];
+					console.log(i);
+					if (this == song) {
+						console.log("THIS");
+						window.currentSong = song;
+						window.playIndex = i;
+				console.log("play index", window.playIndex);
+						console.log(song.player);
+						song.player.play();
+					}
+				}
+				window.currentSong = this;
+			}
+							
+			var HTMLSongElement = document.registerElement('ac-song', {prototype: song});
+		</script>
