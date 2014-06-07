@@ -287,8 +287,8 @@ THE SOFTWARE.*/
 			self[0].play();
 		});
 		this[0].stop = function () {
-			this.removeClass('ac-song-play');
-			this.player.stop();
+			this.classList.remove('ac-song-play');
+			window.players[this.getAttribute('data-uri')].stop();
 		}
 		this[0].play = function () {
 			var songs = $('.ac-song');
