@@ -1,0 +1,36 @@
+.ac-song {
+	font-size: 11px;
+	font-family: 'Tahoma';
+	width: 100%;
+	min-height: 11px;
+	display: block;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-user-drag: none;
+	user-drag: none;
+}
+.ac-song:nth-child(2n) {
+}
+.ac-song > td {
+
+	border-bottom: 1px solid rgba(0, 0, 0, .5);
+}
+
+.ac-song-play {
+	background-color: rgba(0, 0, 0, 0.75);
+	color: rgba(233, 255, 233, 0.75);
+}
+.ac-song-play a {
+	color: white;
+}
+.ac-error {
+	background-color: rgba(255, 244, 244, 0.1);
+	content: 'Error';
+}
+.ac-song-selected {
+	background-color: #aacc88;
+	color: white;
+}
+.ac-song-selected a {
+	color: white;
+}

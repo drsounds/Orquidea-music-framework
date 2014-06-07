@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="jquery.js" type="text/JavaScript"></script>
+		<script src="acsong.js" type="text/JavaScript"></script>
+		<link rel="stylesheet" href="acsong.css" />
+		<title>Web components example</title>
+	</head>
+	<body>
+
+			<div class="ac-song" data-uri="music:artist:Dr+Sounds:album:Aquasphere:track:aquasphere:version:aquasphere"></div>
+			<div class="ac-song" data-uri="music://artist/Darude/album/Before+the+storm/track/aquasphere/version/aquasphere"></div>
+
+			<script>
+				$('.ac-song').each(function (i) {
+					
+					$(this).acsong();
+				});
+			</script>
+	</body>
+</html>
