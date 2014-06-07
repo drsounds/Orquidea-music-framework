@@ -175,10 +175,11 @@ THE SOFTWARE.*/
 				console.log(resolver.lookup);
 				if ('lookup' in resolver)
 				resolver.lookup(this.query, function (resolver, tracks) {
+					console.log(tracks);
+					
 					if (tracks && tracks.length > 0) {
-						console.log(arguments);
+						//alert(tracks[0].title);
 						console.log("Tracks", tracks);
-						console.log(resolver);
 						self_resolver.player = new resolver(self_resolver.uri);
 						console.log(self_resolver.player.load);
 
@@ -199,7 +200,10 @@ THE SOFTWARE.*/
 
 
 
-
+window.onYouTubeIframeAPIReady = function ()
+{
+	
+}
 
 	//GenericResolver.prototype = new Resolver();
 
@@ -211,30 +215,111 @@ THE SOFTWARE.*/
 	};
 	YouTubeResolver.prototype = new Resolver;
 	YouTubeResolver.prototype = {
+		onPlayerReady: function (event) {
+			event.target.playVideo();
+			console.log("A");
+		},
+		onPlayerStateChange: function (event) {
+	        if (event.data == YT.PlayerState.ENDED) {
+	          var evt = new CustomEvent('trackended', {
+
+	          });
+	          window.dispatchEvent(evt);
+	        }
+     	},
+     	stop: function () {
+     		if (this.player)
+     		this.player.stopVideo();
+     	},
+     	play: function () {
+     		var data = this.data;
+     		console.log(data);
+			var divPlayer = document.createElement('div');
+			divPlayer.setAttribute('id', 'ytplayer_' + data.id);
+			document.body.appendChild(divPlayer);
+			console.log("T");
+			var yself = this;
+	      	window.onYouTubeIframeAPIReady = function () {
+	      		console.log(data);
+	      		yself.player = new YT.Player('ytplayer_' + data.id, {
+					'height': 10,
+					'width': 10,
+					'videoId': data.id,
+					'events': {
+			            'onReady': yself.onPlayerReady,
+			            'onStateChange': yself.onPlayerStateChange
+			      	}
+				});	
+			}
+			if (document.querySelector('#ytInclude' + data.id) == null) {
+				try {
+					var tag = document.createElement('script');
+					tag.src = "https://www.youtube.com/iframe_api";
+				
+					tag.setAttribute('id', 'ytInclude');
+		      		document.head.appendChild(tag);
+		      		console.log(tag);
+
+	      			window.onYouTubeIframeAPIReady();
+		      	} catch (e) {
+		      	}
+
+	      	} else {
+	      		window.onYouTubeIframeAPIReady();
+	      	}
+     	},
 		/**
 		 * Loads a youtube resource
 		 **/
 		load: function (callback, data) {
-			var self = this;
-
+			this.data = data;
+			callback(data);
+		 
+			
 		}
 	};
 	YouTubeResolver.lookup = function (q, callback) {
+		console.log(q);
+		var self = this;
 		// TODO Change into Ajax
-		$.getJSON('https://www.googleapis.com/youtube/v3/search?part=snippet&q=' + encodeURI(q.artist + '-' + q.album) +'&key=', function (data) {
+		$.getJSON('https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&q=' + encodeURI(q.artist + '-' + q.album) +'&key=' + YOUTUBE_API_KEY, function (data) {
+			console.log(data.items);
+			if (data.items.length  > 0) {
+				var item = data.items[0];
+				console.log(callback);
+				//alert(callback);
+				var tracks = [{
+					'id': item.id.videoId,
+					'title': item.snippet.title,
+					'artists': [{
+						'name': '',
+						'uri': ''
+					}],
+					'album': {
+						'name': 'Youtube'
+					}
 
+				}];
+				console.log(tracks);
+				callback(self, tracks);
+			}  else {
+				callback(false);
+			}
 		})
 	};
+	YouTubeResolver.matchesUri = function (uri) {
+		return new RegExp(/http:\/\/www.youtube.com?watch/g).test(uri);
+	}
 	/**
 	 * Resolvers for song playback
 	 **/
-	window.musicResolvers = [Resolver, GenericResolver, MockResolver];
+	window.musicResolvers = [Resolver, GenericResolver, YouTubeResolver];
 
 	window.addEventListener('trackended', function (e) {
 		window.playIndex += 1;
 		console.log("play index", window.playIndex);
-		window.currentSong.classList.remove('ac-song-play');
-		var songs = $('.ac-song');
+		window.currentSong.classList.remove('orquidea-song-play');
+		var songs = $('.orquidea-song');
 		console.log(playIndex, songs.length);
 		if (window.playIndex < songs.length) {
 			var song = songs[window.playIndex];
@@ -247,7 +332,7 @@ THE SOFTWARE.*/
 	}, false);
 
 	document.addEventListener('mousedown', function (event) {
-		var songs = $('.ac-song');
+		var songs = $('.orquidea-song');
 		console.log(songs);
 		for (var i = 0; i < songs.length; i++) {
 			var song = songs[i];
@@ -256,14 +341,14 @@ THE SOFTWARE.*/
 			console.log(bounds);
 			if (!(event.pageX >= bounds.left && event.pageX <= bounds.left + bounds.width && event.pageY >= bounds.top && event.pageY <= bounds.top + bounds.height)) {
 
-			song.classList.remove('ac-song-selected');
+			song.classList.remove('orquidea-song-selected');
 			}
 		
 		}
 	})
 	
 	window.players = {};
-	$.fn.acsong = function () {
+	$.fn.orquidea = function () {
 		this.setUri = function (uri) {
 			console.log(arguments);
 
@@ -300,20 +385,20 @@ THE SOFTWARE.*/
 		this.setUri(this.attr('data-uri'));
 		var html = ('<table width="100%"><tr><td id="btn-play"></td><td><span id="throbber">Loading</span><a id="title"></a> <a id="artist"/> </td></tr></table>');
 		if (this[0].tagName == 'TR') {
-		html = '<td id="btn-play"></td><td width=""><span id="throbber">Loading</span><a id="title"/><a id="version"></a></td><td><a id="artist"/></td><td><a id="album" /></td>';
+		html = '<td id="btn-play"></td><td width=""><span id="throbber">Loading</span><a id="title"/><a id="version"></a></td><td><a id="artist"/></td><td><a id="duration"></a></td><td><a id="album" /></td><td><a id="source"></a></td>';
 		}
 		this.html(html);
 		var self = this;
 		this.mousedown(function (e) {
-			var songs = $('.ac-song');
+			var songs = $('.orquidea-song');
 			console.log(songs);
 			for (var i = 0; i < songs.length; i++) {
 				var song = songs[i];
-				song.classList.remove('ac-song-selected');
+				song.classList.remove('orquidea-song-selected');
 			
 			}
 				
-			self.addClass('ac-song-selected');
+			self.addClass('orquidea-song-selected');
 
 		});
 
@@ -323,15 +408,15 @@ THE SOFTWARE.*/
 			self[0].play();
 		});
 		this[0].stop = function () {
-			this.classList.remove('ac-song-play');
+			this.classList.remove('orquidea-song-play');
 			window.players[this.getAttribute('data-uri')].stop();
 		}
 		this[0].play = function () {
-			var songs = $('.ac-song');
+			var songs = $('.orquidea-song');
 			console.log(songs);
 			if (window.currentSong)
 			window.players[this.getAttribute('data-uri')].stop();
-			this.classList.add('ac-song-play');
+			this.classList.add('orquidea-song-play');
 			var i = 0;
 			var self = this;
 			songs.each(function (i) {
