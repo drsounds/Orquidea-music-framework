@@ -228,7 +228,7 @@ window.onYouTubeIframeAPIReady = function ()
 	        }
      	},
      	stop: function () {
-     		if (this.player)
+     		if (this.player && this.player.stopVideo)
      		this.player.stopVideo();
      	},
      	play: function () {
@@ -236,10 +236,11 @@ window.onYouTubeIframeAPIReady = function ()
      		console.log(data);
 			var divPlayer = document.createElement('div');
 			divPlayer.setAttribute('id', 'ytplayer_' + data.id);
+			divPlayer.style.display = 'none';
 			document.body.appendChild(divPlayer);
 			console.log("T");
 			var yself = this;
-	      	window.onYouTubeIframeAPIReady = function () {
+			window.onYouTubeIframeAPIReady = function () {
 	      		console.log(data);
 	      		yself.player = new YT.Player('ytplayer_' + data.id, {
 					'height': 10,
@@ -281,30 +282,44 @@ window.onYouTubeIframeAPIReady = function ()
 	YouTubeResolver.lookup = function (q, callback) {
 		console.log(q);
 		var self = this;
+		q.track = q.track.replace('+', ' ');
+		q.artist = q.artist.replace('+', ' ');
+		q.album = q.album.replace('+', ' ');
+		
 		// TODO Change into Ajax
-		$.getJSON('https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&q=' + encodeURI(q.artist + '-' + q.album) +'&key=' + YOUTUBE_API_KEY, function (data) {
+		$.getJSON('https://www.googleapis.com/youtube/v3/search?type=video&part=snippet&q=' + encodeURI('"' +q.artist + '"' + ' ' + '"' +q.album + '"') +'&key=' + YOUTUBE_API_KEY, function (data) {
 			console.log(data.items);
-			if (data.items.length  > 0) {
-				var item = data.items[0];
-				console.log(callback);
-				//alert(callback);
-				var tracks = [{
-					'id': item.id.videoId,
-					'title': item.snippet.title,
-					'artists': [{
-						'name': '',
-						'uri': ''
-					}],
-					'album': {
-						'name': 'Youtube'
-					}
+			for (var i = 0; i < data.items.length; i++) {
+				var item = data.items[i];
+				console.log(item.snippet.title);
 
-				}];
-				console.log(tracks);
-				callback(self, tracks);
-			}  else {
-				callback(false);
+				if (item.snippet.title.indexOf(q.track) > -1 || item.snippet.title.indexOf(q.artist) > -1) {
+					
+					
+					console.log(callback);
+					//alert(callback);
+					var tracks = [{
+						'id': item.id.videoId,
+						'title': item.snippet.title,
+						'artists': [{
+							'name': q.artist,
+							'uri': ''
+						}],
+						'album': {
+							'name': ''
+						},
+						'source': {
+							'name': 'YouTube',
+							'uri': 'http://www.youtube.com'
+						}
+
+					}];
+					console.log(tracks);
+					callback(self, tracks);
+				}  else {
+				}
 			}
+			callback(false);
 		})
 	};
 	YouTubeResolver.matchesUri = function (uri) {
@@ -378,6 +393,7 @@ window.onYouTubeIframeAPIReady = function ()
 				$('[data-uri="' + uri + '"] #title').first().html(song.title);
 				$('[data-uri="' + uri + '"] #artist').first().html(song.artists[0].name);
 				$('[data-uri="' + uri + '"] #album').html(song.album.name);
+				$('[data-uri="' + uri + '"] #source').html(song.source.name);
 			});
 
 		}
@@ -385,7 +401,7 @@ window.onYouTubeIframeAPIReady = function ()
 		this.setUri(this.attr('data-uri'));
 		var html = ('<table width="100%"><tr><td id="btn-play"></td><td><span id="throbber">Loading</span><a id="title"></a> <a id="artist"/> </td></tr></table>');
 		if (this[0].tagName == 'TR') {
-		html = '<td id="btn-play"></td><td width=""><span id="throbber">Loading</span><a id="title"/><a id="version"></a></td><td><a id="artist"/></td><td><a id="duration"></a></td><td><a id="album" /></td><td><a id="source"></a></td>';
+		html = '<td id="btn-play"></td><td width=""><span id="throbber">Loading</span><a id="title"/><a id="version"></a></td><td><a id="artist"/></td><td><a id="duration"></a></td><td><a id="album" /></td><td><a id="source"></a></td><td>';
 		}
 		this.html(html);
 		var self = this;
