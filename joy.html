@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+	<body>
+		<script>
+			var joy = Object.create(HTMLElement.prototype);
+
+			joy.createdCallback = function () {
+				this._root = this.createShadowRoot();
+				this._root.innerHTML = 'Happiness';
+			};
+
+			var JoyElement = document.registerElement('joy-element', {prototype: joy});
+			console.log(JoyElement);
+		</script>
+	</body>
+</html>

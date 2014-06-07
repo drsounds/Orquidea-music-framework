@@ -79,3 +79,6 @@ A new resolver is registered to the system by putting in into my own custom wind
 
 ## Requirements
 This is using the new technology of web components mentioned in http://w3c.github.io/webcomponents/explainer/ and is not ready for mainstream use, but I plan to implement a jQuery version of this component whenever I have time.
+
+# License
+MIT License

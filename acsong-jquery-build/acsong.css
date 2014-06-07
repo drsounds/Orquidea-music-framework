@@ -1,19 +1,29 @@
 .ac-song {
-	font-size: 11px;
+	font-size: 13px;
 	font-family: 'Tahoma';
 	width: 100%;
-	min-height: 11px;
-	display: block;
+	border-collapse: collapse;
 	user-select: none;
 	-webkit-user-select: none;
 	-webkit-user-drag: none;
 	user-drag: none;
 }
+table.ac-songlist {
+	border-collapse: collapse;
+}
 .ac-song:nth-child(2n) {
 }
-.ac-song > td {
+.ac-song table {
+	border-collapse: collapse;
+}
+.ac-song td#player {
+	padding: 0px;
+}
+.ac-song td {
+	min-height: 11px;
+	padding: 4px 0px;
 
-	border-bottom: 1px solid rgba(0, 0, 0, .5);
+	border-bottom: 1px solid rgba(0, 0, 0, .1);
 }
 
 .ac-song-play {
@@ -21,16 +31,28 @@
 	color: rgba(233, 255, 233, 0.75);
 }
 .ac-song-play a {
-	color: white;
+	color: rgba(211, 255, 211, 1);
+}
+a#artist {
+	opacity: 0.90;
 }
 .ac-error {
 	background-color: rgba(255, 244, 244, 0.1);
 	content: 'Error';
 }
-.ac-song-selected {
+
+.ac-song:hover a {
+	color: auto;
+
+}
+.ac-song:hover {
+	background-color: rgba(0, 0, 0, .10);
+
+}
+.ac-song-selected, .ac-song-selected:hover  {
 	background-color: #aacc88;
 	color: white;
 }
-.ac-song-selected a {
+.ac-song-selected a, .ac-song-selected:hover a {
 	color: white;
 }

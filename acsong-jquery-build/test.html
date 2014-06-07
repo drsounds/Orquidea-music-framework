@@ -5,12 +5,20 @@
 		<script src="acsong.js" type="text/JavaScript"></script>
 		<link rel="stylesheet" href="acsong.css" />
 		<title>Web components example</title>
+		<style type="text/css">
+		body {
+			background-color: #474747;
+			color: white;
+		}
+		</style>
 	</head>
 	<body>
 
-			<div class="ac-song" data-uri="music:artist:Dr+Sounds:album:Aquasphere:track:aquasphere:version:aquasphere"></div>
-			<div class="ac-song" data-uri="music://artist/Darude/album/Before+the+storm/track/aquasphere/version/aquasphere"></div>
-
+			<div class="ac-song" data-uri="music:artist:Dr+Sounds:album:Aquasphere:track:Aquasphere:version:Aquasphere"></div>
+			<table class="ac-songlist" width="100%">
+				
+				<tr class="ac-song" data-uri="music://artist/Darude/album/Before+the+storm/track/Aquasphere/version/Aquasphere"></tr>
+			</table>
 			<script>
 				$('.ac-song').each(function (i) {
 					

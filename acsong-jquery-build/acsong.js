@@ -111,14 +111,22 @@ THE SOFTWARE.*/
 		/**
 		 * Loads metadata for a song
 		 **/
-		load: function (cb) {
+		load: function (cb, data) {
 			console.log("Loading");
+			console.log("Data", data);
 			setTimeout(function () {
+			
 				cb({
-					'title': 'test',
-					'artist': {
-						'uri': 'test',
-						'name': 'Testartist'
+					'title': data.track,
+					'artists': [
+						{
+							'name': data.artist,
+							'uri': ''
+						}
+					],
+					'album': {
+						'name': data.album,
+						'uri': ''
 					}
 				});
 			}, 1000);
@@ -166,12 +174,14 @@ THE SOFTWARE.*/
 				var resolver = window.musicResolvers[i];
 				console.log(resolver.lookup);
 				if ('lookup' in resolver)
-				resolver.lookup(this.params, function (resolver, tracks) {
+				resolver.lookup(this.query, function (resolver, tracks) {
 					if (tracks && tracks.length > 0) {
 						console.log(arguments);
+						console.log("Tracks", tracks);
 						console.log(resolver);
 						self_resolver.player = new resolver(self_resolver.uri);
 						console.log(self_resolver.player.load);
+
 						self_resolver.player.load(cb, tracks[0]);
 					}
 
@@ -193,7 +203,28 @@ THE SOFTWARE.*/
 
 	//GenericResolver.prototype = new Resolver();
 
+	/**
+	 * Youtube resolver
+	 **/
+	var YouTubeResolver = function (uri) {
+		this.uri = uri;
+	};
+	YouTubeResolver.prototype = new Resolver;
+	YouTubeResolver.prototype = {
+		/**
+		 * Loads a youtube resource
+		 **/
+		load: function (callback, data) {
+			var self = this;
 
+		}
+	};
+	YouTubeResolver.lookup = function (q, callback) {
+		// TODO Change into Ajax
+		$.getJSON('https://www.googleapis.com/youtube/v3/search?part=snippet&q=' + encodeURI(q.artist + '-' + q.album) +'&key=', function (data) {
+
+		})
+	};
 	/**
 	 * Resolvers for song playback
 	 **/
@@ -256,17 +287,22 @@ THE SOFTWARE.*/
 			window.players[uri] = this.player;
 			var self = this;
 			this.player.load(function (song) {
+				console.log("A", song);
 				console.log(arguments);;
+				$('[data-uri="' + uri + '"] #throbber').hide();
 				$('[data-uri="' + uri + '"] #title').first().html(song.title);
-				$('[data-uri="' + uri + '"] #artist').first().html(song.artist.name);
-				$('[data-uri="' + uri + '"] #artist').html(song.artist.uri);
+				$('[data-uri="' + uri + '"] #artist').first().html(song.artists[0].name);
+				$('[data-uri="' + uri + '"] #album').html(song.album.name);
 			});
 
 		}
 
 		this.setUri(this.attr('data-uri'));
-		this.html('<table width="100%"><tr><td><a id="title"></a><td><a id="artist"/></td></tr></table>');
-
+		var html = ('<table width="100%"><tr><td id="btn-play"></td><td><span id="throbber">Loading</span><a id="title"></a> <a id="artist"/> </td></tr></table>');
+		if (this[0].tagName == 'TR') {
+		html = '<td id="btn-play"></td><td width=""><span id="throbber">Loading</span><a id="title"/><a id="version"></a></td><td><a id="artist"/></td><td><a id="album" /></td>';
+		}
+		this.html(html);
 		var self = this;
 		this.mousedown(function (e) {
 			var songs = $('.ac-song');
