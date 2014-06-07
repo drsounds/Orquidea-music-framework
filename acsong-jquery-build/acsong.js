@@ -140,7 +140,7 @@ THE SOFTWARE.*/
 			callback(this, [query]);
 	};
 	MockResolver.matchesUri = function (uri) {
-		return new RegExp(/^resolver\:/).test(uri);
+		return uri.match(/^resolver\:/);
 	};
 
 	/**
@@ -167,6 +167,8 @@ THE SOFTWARE.*/
 		 * Loads metadata for a song
 		 **/
 		load: function (cb) {
+
+
 			var self_resolver = this;
 			console.log("A");
 			// Iterate through all available resolvers and 
@@ -194,8 +196,12 @@ THE SOFTWARE.*/
 	 * checks if the resolver matches the uri
 	 **/
 	GenericResolver.matchesUri = function (uri) {
-		console.log("uri", new RegExp(/^music\:/g).test(uri));
-		return new RegExp(/^music\:/g).test(uri);
+		alert("A");
+		var d = uri.match(/^music\:/);
+		if (d) {
+			alert(uri);
+		}
+		return d;
 	};
 
 
@@ -273,6 +279,31 @@ window.onYouTubeIframeAPIReady = function ()
 		 * Loads a youtube resource
 		 **/
 		load: function (callback, data) {
+			// Direct load from URI
+			alert(this.uri);
+			if (this.uri.indexOf('https://www.youtube.com/watch?') == 0) {
+				
+				var id = this.uri.split(/=/g)[1];
+				console.log(id);
+				var data = {
+					'title': '',
+					'id': id,
+					'artists': [{
+						'title': '',
+						'uri': ''
+					}],
+					'album': {
+						'title': ''
+					},
+					'source': {
+						'name': 'YouTube',
+						'uri': 'http://www.youtube.com'
+					}
+				};
+				this.data = data;
+				callback(data);
+				return;
+			}
 			this.data = data;
 			callback(data);
 		 
@@ -323,18 +354,19 @@ window.onYouTubeIframeAPIReady = function ()
 		})
 	};
 	YouTubeResolver.matchesUri = function (uri) {
-		return new RegExp(/http:\/\/www.youtube.com?watch/g).test(uri);
+		alert(uri);
+		return uri.indexOf('https://www.youtube.com/watch') == 0;
 	}
 	/**
 	 * Resolvers for song playback
 	 **/
-	window.musicResolvers = [Resolver, GenericResolver, YouTubeResolver];
+	window.musicResolvers = [YouTubeResolver, GenericResolver, Resolver];
 
 	window.addEventListener('trackended', function (e) {
 		window.playIndex += 1;
 		console.log("play index", window.playIndex);
-		window.currentSong.classList.remove('orquidea-song-play');
-		var songs = $('.orquidea-song');
+		window.currentSong.classList.remove('acsong-song-play');
+		var songs = $('.acsong-song');
 		console.log(playIndex, songs.length);
 		if (window.playIndex < songs.length) {
 			var song = songs[window.playIndex];
@@ -347,7 +379,7 @@ window.onYouTubeIframeAPIReady = function ()
 	}, false);
 
 	document.addEventListener('mousedown', function (event) {
-		var songs = $('.orquidea-song');
+		var songs = $('.acsong-song');
 		console.log(songs);
 		for (var i = 0; i < songs.length; i++) {
 			var song = songs[i];
@@ -356,24 +388,33 @@ window.onYouTubeIframeAPIReady = function ()
 			console.log(bounds);
 			if (!(event.pageX >= bounds.left && event.pageX <= bounds.left + bounds.width && event.pageY >= bounds.top && event.pageY <= bounds.top + bounds.height)) {
 
-			song.classList.remove('orquidea-song-selected');
+			song.classList.remove('acsong-song-selected');
 			}
 		
 		}
 	})
-	
+	/***
+	 * Neutralizes id from spatial tokens
+	 **/
+	var _orqId = function (uri) {
+		return uri.replace(/\:/g, '__').replace(/\//g, '__').replace(/\+/g, '__').replace(/\-/g, '__¨').replace(/\%/g, '__').replace(/\?/g, '__').replace(/\=/g, '__').replace(/\./g, '__');
+	};
 	window.players = {};
-	$.fn.orquidea = function () {
+	$.fn.acsong = function () {
+		var self = this;	
 		this.setUri = function (uri) {
 			console.log(arguments);
-
+			this.attr('data-id', _orqId(uri));
 			// Set the music resolver based on the uri
 
 			// Query for a matching resolver
 			
 			for (var i = 0; i < window.musicResolvers.length; i++) {
+				console.log("Resolver", window.musicResolvers[i]);
 				if (window.musicResolvers[i].matchesUri(uri)) {
 					this.resolver = window.musicResolvers[i];
+
+					break;
 				}
 
 			}
@@ -389,32 +430,43 @@ window.onYouTubeIframeAPIReady = function ()
 			this.player.load(function (song) {
 				console.log("A", song);
 				console.log(arguments);;
-				$('[data-uri="' + uri + '"] #throbber').hide();
-				$('[data-uri="' + uri + '"] #title').first().html(song.title);
-				$('[data-uri="' + uri + '"] #artist').first().html(song.artists[0].name);
-				$('[data-uri="' + uri + '"] #album').html(song.album.name);
-				$('[data-uri="' + uri + '"] #source').html(song.source.name);
+				$(' #throbber').hide();
+				var sel = '.acsong-song[data-id="' + _orqId(uri) + '"]';
+				var elm = $(sel)[0];
+				if (song.title)
+				$(sel + ' #title').first().html(song.title);
+				if (song.artists)
+				$(sel + ' #artist').first().html(song.artists[0].name);
+				if (song.album)
+				$(sel + ' #album').first().html(song.album.name);
+				$(sel + ' #source').first().html(song.source.name);
 			});
 
 		}
 
-		this.setUri(this.attr('data-uri'));
 		var html = ('<table width="100%"><tr><td id="btn-play"></td><td><span id="throbber">Loading</span><a id="title"></a> <a id="artist"/> </td></tr></table>');
 		if (this[0].tagName == 'TR') {
-		html = '<td id="btn-play"></td><td width=""><span id="throbber">Loading</span><a id="title"/><a id="version"></a></td><td><a id="artist"/></td><td><a id="duration"></a></td><td><a id="album" /></td><td><a id="source"></a></td><td>';
+			html = '<td id="btn-play"></td><td width=""><span id="throbber">Loading</span><a id="title"/><a id="version"></a></td><td><a id="artist"/></td><td><a id="duration"></a></td><td><a id="album" /></td><td><a id="source"></a></td><td><td></td>';
 		}
+
 		this.html(html);
+		this.setUri(this.attr('data-uri'));
+		
+		$('#title', this[0]).first().html(this.attr('data-title'));
+		$('#artist', this[0]).html(this.attr('data-artist'));
+		$('#album', this[0]).html(this.attr('data-album'));
+		this.setUri(this.attr('data-uri'));
 		var self = this;
 		this.mousedown(function (e) {
-			var songs = $('.orquidea-song');
+			var songs = $('.acsong-song');
 			console.log(songs);
 			for (var i = 0; i < songs.length; i++) {
 				var song = songs[i];
-				song.classList.remove('orquidea-song-selected');
+				song.classList.remove('acsong-song-selected');
 			
 			}
 				
-			self.addClass('orquidea-song-selected');
+			self.addClass('acsong-song-selected');
 
 		});
 
@@ -424,15 +476,15 @@ window.onYouTubeIframeAPIReady = function ()
 			self[0].play();
 		});
 		this[0].stop = function () {
-			this.classList.remove('orquidea-song-play');
+			this.classList.remove('acsong-song-play');
 			window.players[this.getAttribute('data-uri')].stop();
 		}
 		this[0].play = function () {
-			var songs = $('.orquidea-song');
+			var songs = $('.acsong-song');
 			console.log(songs);
 			if (window.currentSong)
 			window.players[this.getAttribute('data-uri')].stop();
-			this.classList.add('orquidea-song-play');
+			this.classList.add('acsong-song-play');
 			var i = 0;
 			var self = this;
 			songs.each(function (i) {
